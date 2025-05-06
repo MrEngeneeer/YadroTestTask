@@ -110,3 +110,19 @@ Examples:
 `Resulting table`
 ```
 [NotFinished] 1 [{00:29:03.872, 2.093}, {,}] {00:01:44.296, 0.481} 4/5
+```
+
+## Solution
+
+To build the prototype, you need to enter
+```
+go build main.go
+```
+The prototype requires the following flags:
+    config - path to config
+    input - input events
+To run the tests, you need to enter
+```
+go test
+```
+

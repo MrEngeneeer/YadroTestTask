@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/MrEngeneer/YadroTestTask/compute"
+	"github.com/MrEngeneer/YadroTestTask/parser"
 	"testing"
 	"time"
 )
@@ -16,7 +18,7 @@ func TestCustomTime_UnmarshalJSON(t *testing.T) {
 		{`"invalid"`, time.Time{}, true},
 	}
 	for _, tt := range tests {
-		var ct CustomTime
+		var ct parser.CustomTime
 		err := ct.UnmarshalJSON([]byte(tt.input))
 		if (err != nil) != tt.wantErr {
 			t.Errorf("UnmarshalJSON(%s) error = %v, wantErr %v", tt.input, err, tt.wantErr)
@@ -39,7 +41,7 @@ func TestCustomDuration_UnmarshalJSON(t *testing.T) {
 		{`"bad"`, 0, true},
 	}
 	for _, tt := range tests {
-		var cd CustomDuration
+		var cd parser.CustomDuration
 		err := cd.UnmarshalJSON([]byte(tt.input))
 		if (err != nil) != tt.wantErr {
 			t.Errorf("UnmarshalJSON(%s) error = %v, wantErr %v", tt.input, err, tt.wantErr)
@@ -53,14 +55,14 @@ func TestCustomDuration_UnmarshalJSON(t *testing.T) {
 
 func TestParseEvent(t *testing.T) {
 	line := "[12:00:01.234] 2 5 12:05:00.000"
-	e, err := ParseEvent(line)
+	event, err := parser.ParseEvent(line)
 	if err != nil {
 		t.Fatalf("ParseEvent error: %v", err)
 	}
-	if e.EventID() != 2 || e.CompetitorID() != 5 {
-		t.Errorf("EventID or CompetitorID wrong: got %d, %d", e.EventID(), e.CompetitorID())
+	if event.EventID() != 2 || event.CompetitorID() != 5 {
+		t.Errorf("EventID or CompetitorID wrong: got %d, %d", event.EventID(), event.CompetitorID())
 	}
-	extra, ok := e.ExtraParams().(time.Time)
+	extra, ok := event.ExtraParams().(time.Time)
 	if !ok {
 		t.Fatalf("ExtraParams type incorrect")
 	}
@@ -79,7 +81,7 @@ func TestFormatDuration(t *testing.T) {
 		{-3*time.Second - 50*time.Millisecond, "00:00:03.050"},
 	}
 	for _, tt := range tests {
-		got := formatDuration(tt.dur)
+		got := parser.FormatDuration(tt.dur)
 		if got != tt.expected {
 			t.Errorf("formatDuration(%v) = %s, want %s", tt.dur, got, tt.expected)
 		}
@@ -88,7 +90,7 @@ func TestFormatDuration(t *testing.T) {
 
 func TestEvent_String(t *testing.T) {
 	timeTemp := time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC)
-	e := &event{timeTemp, 2, 1, timeTemp}
+	e := parser.NewEvent(timeTemp, 2, 1, timeTemp)
 	got := e.String()
 	want := "The start time for the competitor(1) was set by a draw to 09:00:00.000"
 	if got != want {
@@ -97,15 +99,15 @@ func TestEvent_String(t *testing.T) {
 }
 
 func TestProcessEvents_NotStarted(t *testing.T) {
-	config := Config{Laps: 1, LapLen: 100, PenaltyLen: 50, FiringLines: 1,
-		Start:      CustomTime{time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC)},
-		StartDelta: CustomDuration{time.Second},
+	config := parser.Config{Laps: 1, LapLen: 100, PenaltyLen: 50, FiringLines: 1,
+		Start:      parser.CustomTime{time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC)},
+		StartDelta: parser.CustomDuration{time.Second},
 	}
 
 	timeTemp, _ := time.Parse("15:04:05.000", "09:00:00.000")
-	event := &event{timeTemp, 2, 1, timeTemp}
-	eList := []Event{event}
-	final := appendFinalEvents(eList, config)
+	event := parser.NewEvent(timeTemp, 2, 1, timeTemp)
+	eList := []parser.Event{event}
+	final := compute.AppendFinalEvents(eList, config)
 
 	last := final[len(final)-1]
 	if last.EventID() != 32 {
